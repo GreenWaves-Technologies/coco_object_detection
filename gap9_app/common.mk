@@ -10,7 +10,7 @@ MODEL_PREFIX?=ssd_mobilenet
 MODEL_PYTHON=python3
 MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 NNTOOL_PYTHON_SCRIPT=nntool_generate_model.py
-TRAINED_MODEL=../ssd_mobv1_075_quant.tflite
+TRAINED_MODEL=../models/ssd_mobv1_075_quant.tflite
 
 AT_MODEL_DIR=AT_MODEL_FILES
 AT_MODEL_PATH=$(AT_MODEL_DIR)/model.c

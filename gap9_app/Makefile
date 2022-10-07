@@ -17,7 +17,7 @@ $(info Building NNTOOL model)
 NNTOOL_EXTRA_FLAGS ?=
 
 include common/model_decl.mk
-IMAGE=$(CURDIR)/coco_test_image_gray_320_240.ppm
+IMAGE=$(CURDIR)/images/coco_test_image_gray_320_240.ppm
 
 # pulpChip = GAP
 # PULP_APP = $(MODEL_PREFIX)
@@ -34,9 +34,14 @@ APP_CFLAGS += -DAT_IMAGE=$(IMAGE) -DFREQ_FC=$(FREQ_FC) -DFREQ_CL=$(FREQ_CL) -DFR
 CONFIG_ILI9341       = 1
 CONFIG_DISPLAY       = 1
 
-USE_CAMERA ?=0
+USE_CAMERA?=1
 ifeq ($(USE_CAMERA), 0)
   APP_CFLAGS += -DFROM_FILE
+endif
+
+DISPLAY?=1
+ifeq ($(DISPLAY), 1)
+  APP_CFLAGS += -DDISPLAY
 endif
 
 READFS_FILES=$(abspath $(MODEL_TENSORS))

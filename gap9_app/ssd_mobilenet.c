@@ -22,10 +22,20 @@
 
 #define WIDTH 300
 #define HEIGHT 300
+
 #define CAMERA_WIDTH 320
 #define CAMERA_HEIGHT 240
 #define CAMERA_MINDIM 240
+
+#ifdef DISPLAY
+#define MAX_DISPLAY_WIDTH 320
+#define MAX_DISPLAY_HEIGHT 240
 #define SCORE_THRESHOLD 50
+#else
+#define MAX_DISPLAY_WIDTH WIDTH
+#define MAX_DISPLAY_HEIGHT HEIGHT
+#define SCORE_THRESHOLD 0
+#endif
 
 struct pi_device DefaultRam;
 AT_HYPERFLASH_EXT_ADDR_TYPE ssd_mobilenet_L3_Flash = 0;
@@ -66,6 +76,7 @@ static void Resize(KerResizeBilinear_ArgT *KerArg)
     AT_FORK(gap_ncore(), (void *) KerResizeBilinear, (void *) KerArg);
 }
 
+#ifdef DISPLAY
 static void open_display(struct pi_device *device)
 {
     struct pi_ili9341_conf ili_conf;
@@ -84,6 +95,7 @@ static void open_display(struct pi_device *device)
     }
     setCursor(device, 0, 0);
 }
+#endif
 
 static void open_and_alloc_ram(struct pi_device *device, uint32_t Buffer, uint32_t size)
 {
@@ -126,26 +138,26 @@ static inline void WriteRectOnImage(unsigned short *image,  int x,  int y,  int 
     int line_width = 2;
     //int color = 0xF800;
     /* top */
-    for (int j=y; (j<240) && (j<(y+line_width)); j++) {
-        for (int i=x; i<(x+w); i++) {
+    for (int j=y; (j<MAX_DISPLAY_HEIGHT) && (j<(y+line_width)); j++) {
+        for (int i=x; (i<MAX_DISPLAY_WIDTH) && (i<(x+w)); i++) {
             image[j*WIDTH + i] = color;
         }
     }
     /* bottom */
-    for (int j=y+h; (j<240) && (j<(y+h+line_width)); j++) {
-        for (int i=x; i<(x+w+line_width); i++) {
+    for (int j=y+h; (j<MAX_DISPLAY_HEIGHT) && (j<(y+h+line_width)); j++) {
+        for (int i=x; (i<MAX_DISPLAY_WIDTH) && (i<(x+w+line_width)); i++) {
             image[j*WIDTH + i] = color;
         }
     }
     /* left */
-    for (int j=y; (j<240) && (j<(y+h)); j++) {
-        for (int i=x; i<(x+line_width); i++) {
+    for (int j=y; (j<MAX_DISPLAY_HEIGHT) && (j<(y+h)); j++) {
+        for (int i=x; (i<MAX_DISPLAY_WIDTH) && (i<(x+line_width)); i++) {
             image[j*WIDTH + i] = color;
         }
     }
     /* right */
-    for (int j=y; (j<240) && (j<(y+h+line_width)); j++) {
-        for (int i=x+w; i<(x+w+line_width); i++) {
+    for (int j=y; (j<MAX_DISPLAY_HEIGHT) && (j<(y+h+line_width)); j++) {
+        for (int i=x+w; (i<MAX_DISPLAY_WIDTH) && (i<(x+w+line_width)); i++) {
             image[j*WIDTH + i] = color;
         }
     }
@@ -205,10 +217,12 @@ int test_ssd_mobilenet(void)
     printf("opening and alloc ram buffer...\n");
     open_and_alloc_ram(&DefaultRam, RamImageBuffer, WIDTH*HEIGHT);
 
+#ifdef DISPLAY
     /* Open display */
     printf("opening display...\n");
     // BLUE 0x001F DARKCYAN 0x03EF NAVY 0x000F WHITE 0xFFFF CYAN 0x07FF RED 0xF800
     open_display(&ili);
+#endif
 
 
 #ifndef FROM_FILE
@@ -304,7 +318,9 @@ int test_ssd_mobilenet(void)
         FromGrayToRGB565(Input_1, WIDTH, HEIGHT);
 
         /* Box for fps text */
+        #ifdef DISPLAY
         WriteFillRectOnImage((unsigned short *) Input_1, 0, 0, 220, 25, 0xFFFF);
+        #endif
 
         unsigned short class_colors[5] = {0, 0, 0, 0, 0};
         int color_idx = 0;
@@ -320,7 +336,9 @@ int test_ssd_mobilenet(void)
                     }
                 }
                 if (!is_already){
+                    #ifdef DISPLAY
                     WriteFillRectOnImage((unsigned short *) Input_1, 0, 25+25*color_idx, 100, 25, 0xFFFF);
+                    #endif
                     // sprintf(labels[color_idx], "%d", pred_class);
                     sprintf(labels[color_idx], "%s", coco_labels[pred_class-1]);
                     color_idx++;
@@ -339,18 +357,23 @@ int test_ssd_mobilenet(void)
                 // printf("BOX[%d] (x, y, w, h): (%d, %d, %d, %d) CLASS@SCORE: %d@%f\n", i, box_x_min, box_y_min, box_w, box_h, OutputClasses[i], FIX2FP(OutputScores[i],7));
             }
         }
+#ifdef DISPLAY
         pi_display_write(&ili, &buffer, 0, 0, WIDTH, 240);
         for (int i=0; i<color_idx; i++) draw_text(&ili, labels[i], 5, 25+25*i, 2, class_colors[i]);
-
+#else
+        WriteImageToFile("../OutputImage.pgm", WIDTH, HEIGHT, 3, Input_1, RGB565_IO);
+        for (int i=0; i<color_idx; i++) printf("%s\n", labels[i]);
+#endif
         int display_us = pi_time_get_us() - start;
 
         /* Write Timings */
         char timing[50];
         sprintf(timing, "NN@%.2ffps (%.2f)", 1000000 / ((float) nn_us), 1000000 / ((float) (get_image+crop_and_resize_us+ram_copy_us+nn_us+display_us)));
-        //printf("get_image: %d crop_and_resize: %d ram: %d nn: %d display: %d (%s - %.2f)\n", get_image, crop_and_resize_us, ram_copy_us, nn_us, display_us, timing, 1000000 / ((float) (get_image+crop_and_resize_us+ram_copy_us+nn_us+display_us)));
-        //writeFillRect(&ili, 0, 0, 140, 25, 0xFFFF); 
+#ifdef DISPLAY
         draw_text(&ili, timing, 5, 5, 2, 0xF800);
-
+#else
+        printf("get_image: %d crop_and_resize: %d ram: %d nn: %d display: %d - %s\n", get_image, crop_and_resize_us, ram_copy_us, nn_us, display_us, timing);
+#endif
     }
 
     ssd_mobilenetCNN_Destruct();
