@@ -1,0 +1,17 @@
+name: coco_app
+boards: []
+platforms: 
+    - board
+    - gvsoc
+os: 
+    - freertos
+chips: 
+    - gap9
+variants:
+    nn_test:
+        name: coco_app_test
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: DISPLAY=0 CAMERA=0 CI=1

@@ -48,6 +48,7 @@ static L2_MEM signed char OutputClasses[10];
 static L2_MEM signed char OutputScores[10];
 static L2_MEM char labels[5][50];
 static L2_MEM unsigned short colors[5] = {0x001F, 0x07E0, 0x07FF, 0xF800, 0xFFE0};
+static L2_MEM char colors_names[5][6] = {"blue", "green", "cyan", "red", "yellow"};
 
 struct pi_device ili;
 static pi_buffer_t buffer;
@@ -178,10 +179,7 @@ static void cluster()
     gap_cl_resethwtimer();
     #endif
 
-    int cycles = gap_cl_readhwtimer();
     ssd_mobilenetCNN(OutputBoxes, OutputClasses, OutputScores);
-    cycles = gap_cl_readhwtimer() - cycles;
-    //printf("Executed in %d Cycles (%.2f inf/sec)\n", cycles, cycles / (FREQ_CL*1000*1000));
 }
 
 int test_ssd_mobilenet(void)
@@ -213,7 +211,7 @@ int test_ssd_mobilenet(void)
         pmsis_exit(-4);
     }
 
-    /* Open display */
+    /* Open Ram */
     printf("opening and alloc ram buffer...\n");
     open_and_alloc_ram(&DefaultRam, RamImageBuffer, WIDTH*HEIGHT);
 
@@ -276,6 +274,7 @@ int test_ssd_mobilenet(void)
             }
         }
         #ifndef DISPLAY
+        printf("Writing Cropped Image\n");
         WriteImageToFile("../OutCropped.pgm", CAMERA_MINDIM, CAMERA_MINDIM, sizeof(uint8_t), L2ImageBuffer, GRAY_SCALE_IO);
         #endif
 
@@ -295,6 +294,7 @@ int test_ssd_mobilenet(void)
         pi_cluster_send_task_to_cl(&cluster_dev, &task_resize);
         int crop_and_resize_us = pi_time_get_us() - start;
         #ifndef DISPLAY
+        printf("Writing Resized Image\n");
         WriteImageToFile("../OutResized.pgm", WIDTH, HEIGHT, sizeof(uint8_t), Input_1, GRAY_SCALE_IO);
         #endif
 
@@ -364,8 +364,9 @@ int test_ssd_mobilenet(void)
         pi_display_write(&ili, &buffer, 0, 0, WIDTH, 240);
         for (int i=0; i<color_idx; i++) draw_text(&ili, labels[i], 5, 25+25*i, 2, class_colors[i]);
 #else
+        printf("Writing Image w/ BBoxes\n");
         WriteImageToFile("../OutputImage.pgm", WIDTH, HEIGHT, 3, Input_1, RGB565_IO);
-        for (int i=0; i<color_idx; i++) printf("%s\n", labels[i]);
+        for (int i=0; i<color_idx; i++) printf("%s - %s\n", labels[i], colors_names[i]);
 #endif
         int display_us = pi_time_get_us() - start;
 
@@ -375,10 +376,38 @@ int test_ssd_mobilenet(void)
 #ifdef DISPLAY
         draw_text(&ili, timing, 5, 5, 2, 0xF800);
 #else
-        printf("get_image: %d crop_and_resize: %d ram: %d nn: %d display: %d - %s\n", get_image, crop_and_resize_us, ram_copy_us, nn_us, display_us, timing);
+        printf("get_image: %dus crop_and_resize: %dus ram: %dus nn: %dus display: %dus - %s\n", get_image, crop_and_resize_us, ram_copy_us, nn_us, display_us, timing);
+        break;
 #endif
     }
 
+#ifdef PERF
+    unsigned int TotalCycles = 0, TotalOper = 0;
+    printf("\n");
+    for (unsigned int i=0; i<(sizeof(AT_GraphPerf)/sizeof(unsigned int)); i++) {
+        TotalCycles += AT_GraphPerf[i]; TotalOper += AT_GraphOperInfosNames[i];
+    }
+    printf("%45s: Cycles: %12u, Cyc%%: 100.0%%, Operations: %12u, Op%%: 100.0%%, Operations/Cycle: %f\n", "Total", TotalCycles, TotalOper, ((float) TotalOper)/ TotalCycles);
+printf("\n");
+#endif
+#ifdef CI
+    int errors = 0;
+    int Output_CI[5] = {19, 1, 1, 1, 1};
+    for (int i=0; i<5; i++) {
+        if ((OutputScores[i]>SCORE_THRESHOLD) && (OutputClasses[i]>0) && (OutputClasses[i]<80)) {
+            errors += OutputClasses[i] != Output_CI[i];
+        }
+    }
+    if (errors){
+        printf("Non-regression failed: Error in results");
+        pmsis_exit(-1);
+    }
+    if (TotalCycles > 27500000) { //27386774
+        printf("Non-regression failed: Performance\n");
+        pmsis_exit(-2);
+    }
+    printf("Test Passed!\n");
+#endif
     ssd_mobilenetCNN_Destruct();
 
     printf("Ended\n");
