@@ -259,7 +259,7 @@ int test_ssd_mobilenet(void)
             }
         #else
             pi_evt_t task_camera;
-            pi_camera_capture_async(&camera, L2ImageBuffer, CAMERA_WIDTH*CAMERA_HEIGHT, pi_evt_sig_init(&task_camera));
+            pi_camera_capture_async(&camera, L2ImageBuffer, 320*240, pi_evt_sig_init(&task_camera));
             pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
             pi_evt_wait(&task_camera);
             pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
@@ -270,30 +270,33 @@ int test_ssd_mobilenet(void)
         /* Image Cropping to [ CAMERA_MINDIM x CAMERA_MINDIM ] */
         int idx=0;
         for(int i =0;i<CAMERA_HEIGHT;i++){
-            for(int j=0;j<CAMERA_WIDTH;j++){
-                if (i<CAMERA_MINDIM && j<CAMERA_MINDIM){
-                    L2ImageBuffer[idx] = L2ImageBuffer[i*CAMERA_WIDTH+j];
-                    idx++;
-                }
+            for(int j=40;j<(CAMERA_WIDTH-40);j++){
+                L2ImageBuffer[idx] = L2ImageBuffer[i*CAMERA_WIDTH+j];
+                idx++;
             }
         }
-        // WriteImageToFile("../OutCropped.pgm", CAMERA_MINDIM, CAMERA_MINDIM, sizeof(uint8_t), L2ImageBuffer, GRAY_SCALE_IO);
+        #ifndef DISPLAY
+        WriteImageToFile("../OutCropped.pgm", CAMERA_MINDIM, CAMERA_MINDIM, sizeof(uint8_t), L2ImageBuffer, GRAY_SCALE_IO);
+        #endif
 
         /* Resize to [ HEIGHT x WIDTH ] */
         struct pi_cluster_task task_resize;
         KerResizeBilinear_ArgT ResizeArg;
         ResizeArg.In             = L2ImageBuffer;
-        ResizeArg.Win            = CAMERA_MINDIM;
-        ResizeArg.Hin            = CAMERA_MINDIM;
+        ResizeArg.Win            = 240;
+        ResizeArg.Hin            = 240;
         ResizeArg.Out            = Input_1;
-        ResizeArg.Wout           = WIDTH;
-        ResizeArg.Hout           = HEIGHT;
-        ResizeArg.HTileOut       = HEIGHT;
+        ResizeArg.Wout           = 300;
+        ResizeArg.Hout           = 300;
+        ResizeArg.HTileOut       = 300;
         ResizeArg.FirstLineIndex = 0;
         pi_cluster_task(&task_resize, (void (*)(void *))Resize, &ResizeArg);
         pi_cluster_task_stacks(&task_resize, NULL, SLAVE_STACK_SIZE);
         pi_cluster_send_task_to_cl(&cluster_dev, &task_resize);
         int crop_and_resize_us = pi_time_get_us() - start;
+        #ifndef DISPLAY
+        WriteImageToFile("../OutResized.pgm", WIDTH, HEIGHT, sizeof(uint8_t), Input_1, GRAY_SCALE_IO);
+        #endif
 
         start = pi_time_get_us();
         pi_ram_copy(&DefaultRam, RamImageBuffer, (void *) Input_1, HEIGHT*WIDTH, 0);
