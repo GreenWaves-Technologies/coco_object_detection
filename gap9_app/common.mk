@@ -10,7 +10,17 @@ MODEL_PREFIX?=ssd_mobilenet
 MODEL_PYTHON=python3
 MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 NNTOOL_PYTHON_SCRIPT=nntool_generate_model.py
+
+MODEL_ID?=0
+ifeq ($(MODEL_ID), 0)
 TRAINED_MODEL=../models/ssd_mobv1_075_quant.tflite
+endif
+ifeq ($(MODEL_ID), 1)
+TRAINED_MODEL=../models/ssd_mobv1_quant.tflite
+endif
+ifeq ($(MODEL_ID), 2)
+TRAINED_MODEL=../models/ssd_mobv2_quant.tflite
+endif
 
 AT_MODEL_DIR=AT_MODEL_FILES
 AT_MODEL_PATH=$(AT_MODEL_DIR)/model.c
@@ -71,7 +81,7 @@ else
 endif
 
 # Cluster stack size for master core and other cores
-CLUSTER_STACK_SIZE=2048
+CLUSTER_STACK_SIZE=4096
 CLUSTER_SLAVE_STACK_SIZE=512
 
 # define STD_FLOAT if float16 in use

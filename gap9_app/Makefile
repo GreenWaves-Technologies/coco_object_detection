@@ -19,14 +19,24 @@ NNTOOL_EXTRA_FLAGS ?=
 include common/model_decl.mk
 IMAGE=$(CURDIR)/images/coco_test_image_gray_320_240.ppm
 
-# pulpChip = GAP
-# PULP_APP = $(MODEL_PREFIX)
+APP_MODE?=1
+ifeq ($(APP_MODE), 1)
+  MAIN = main.c
+else
+  MAIN = ssd_mobilenet.c
+  IMAGE=$(CURDIR)/images/coco_test_image.ppm
+  ifneq '$(platform)' 'gvsoc'
+  ifdef MEAS
+  APP_CFLAGS += -DGPIO_MEAS
+  endif
+  endif
+endif
 
 APP = $(MODEL_PREFIX)
-APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_EXPRESSIONS) $(MODEL_COMMON_SRCS) $(CNN_LIB)
+APP_SRCS += $(MAIN) $(MODEL_GEN_C) $(MODEL_EXPRESSIONS) $(MODEL_COMMON_SRCS) $(CNN_LIB)
 
 APP_CFLAGS += -g -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
-APP_CFLAGS += -I. -I$(AT_MODEL_DIR) -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
+APP_CFLAGS += -I. -I$(GAP_SDK_HOME)/utils/power_meas_utils -I$(AT_MODEL_DIR) -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
 APP_CFLAGS += -DPERF -DAT_MODEL_PREFIX=$(MODEL_PREFIX) $(MODEL_SIZE_CFLAGS)
 APP_CFLAGS += -DSTACK_SIZE=$(CLUSTER_STACK_SIZE) -DSLAVE_STACK_SIZE=$(CLUSTER_SLAVE_STACK_SIZE)
 APP_CFLAGS += -DAT_IMAGE=$(IMAGE) -DFREQ_FC=$(FREQ_FC) -DFREQ_CL=$(FREQ_CL) -DFREQ_PE=$(FREQ_PE)
