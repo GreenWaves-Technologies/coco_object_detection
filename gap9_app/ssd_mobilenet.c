@@ -117,7 +117,7 @@ int test_ssd_mobilenet(void)
     pi_cluster_send_task_to_cl(&cluster_dev, &task);
 
     for(int i=0; i<10; i++) {
-        printf("BBox[%d]: (%d %d %d %d) Class: %d Confidence: %d\n",
+        printf("BBox[%d]: (%5d %5d %5d %5d) Class: %2d Confidence: %3d\n",
             i, OutputBoxes[4*i], OutputBoxes[4*i+1], OutputBoxes[4*i+2], OutputBoxes[4*i+3], OutputClasses[i], OutputScores[i]);
     }
 #ifdef PERF

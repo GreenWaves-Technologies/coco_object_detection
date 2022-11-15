@@ -26,6 +26,7 @@ def main():
     args = parser.parse_args()
 
     at_model_path = args.at_model_path
+    at_model_file = os.path.split(at_model_path)[-1]
     at_model_dir = os.path.split(at_model_path)[0]
     print(at_model_dir)
 
@@ -48,6 +49,7 @@ def main():
         settings={
             "tensor_directory": f"{at_model_dir}/tensors",
             "model_directory": f"{at_model_dir}/",
+            "model_file": at_model_file,
 
             # Memory options
             "l1_size": 128000,
