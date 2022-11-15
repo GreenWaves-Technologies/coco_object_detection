@@ -1,4 +1,5 @@
 name: coco_app
+builder: cmake
 boards: []
 platforms: 
     - board
@@ -14,4 +15,4 @@ variants:
             - integration
             - release
         duration: standard
-        flags: DISPLAY=0 CAMERA=0 CI=1
+        flags: CONFIG_APP_MODE=n
