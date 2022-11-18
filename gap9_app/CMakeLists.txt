@@ -39,6 +39,7 @@ set(TARGET_NAME         "ssd_mobilenet")
 
 include($ENV{GAP_SDK_HOME}/utils/cmake/setup.cmake)
 setup_cmake()
+set(APP_MSG_PREFIX "[${BoldRed}${TARGET_NAME}${ColourReset}]")
 if (CONFIG_APP_MODE)
     set(IMAGE images/coco_test_image_gray_320_240.ppm)
     set(MAIN                main.c)
@@ -64,7 +65,7 @@ endif()
 ###############################################################################
 
 if (CONFIG_USE_PRIVILEGED_MRAM)
-    message(STATUS "Selected MRAM Privileged flash")
+    message(STATUS "${APP_MSG_PREFIX} Selected MRAM Privileged flash")
     list(APPEND NNTOOLSCRIPT_FLAGS -DMODEL_SEC_L3_FLASH=AT_MEM_L3_MRAMFLASH)
     set(PRIVILEGED_FLASH_FLAG --use_privileged_flash_device)
 else()
@@ -79,7 +80,7 @@ autotiler_setup(${TARGET_NAME})
 ###############################################################################
 # Custom Commands to build model
 ###############################################################################
-message(STATUS "AT_MODEL path: ${AT_MODEL_PATH}")
+message(STATUS "${APP_MSG_PREFIX} AT_MODEL path: ${AT_MODEL_PATH}")
 add_custom_command(
   OUTPUT ${AT_MODEL_PATH} ${MODEL_EXPRESSIONS} ${AT_TENSORS_DIR}
   COMMENT "Generate the autotiler model"
