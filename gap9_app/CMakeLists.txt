@@ -84,7 +84,7 @@ add_custom_command(
   OUTPUT ${AT_MODEL_PATH} ${MODEL_EXPRESSIONS} ${AT_TENSORS_DIR}
   COMMENT "Generate the autotiler model"
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/nntool_generate_model.py
-  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/nntool_generate_model.py 
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/nntool_generate_model.py 
                 --at_model_path ${AT_MODEL_PATH}
                 --trained_model ${TRAINED_MODEL_PATH}
                 --flash_device ${MODEL_L3_FLASH}
