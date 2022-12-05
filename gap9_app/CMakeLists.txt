@@ -38,7 +38,6 @@ set(TARGET_NAME         "ssd_mobilenet")
 ###############################################################################
 
 include($ENV{GAP_SDK_HOME}/utils/cmake/setup.cmake)
-setup_cmake()
 set(APP_MSG_PREFIX "[${BoldRed}${TARGET_NAME}${ColourReset}]")
 if (CONFIG_APP_MODE)
     set(IMAGE images/coco_test_image_gray_320_240.ppm)
