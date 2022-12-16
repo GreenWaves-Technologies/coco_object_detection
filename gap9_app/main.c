@@ -72,7 +72,7 @@ static void open_camera(struct pi_device *device)
 }
 #endif
 
-static void Resize(KerResizeBilinear_ArgT *KerArg)
+static void Resize(KerResize_ArgT *KerArg)
 {
     AT_FORK(gap_ncore(), (void *) KerResizeBilinear, (void *) KerArg);
 }
@@ -279,16 +279,20 @@ int test_ssd_mobilenet(void)
         #endif
 
         /* Resize to [ HEIGHT x WIDTH ] */
+        int Hin = 240, Win = 240;
+        int Hout = 300, Wout = 300;
         struct pi_cluster_task task_resize;
-        KerResizeBilinear_ArgT ResizeArg;
+        KerResize_ArgT ResizeArg;
         ResizeArg.In             = L2ImageBuffer;
-        ResizeArg.Win            = 240;
-        ResizeArg.Hin            = 240;
+        ResizeArg.Win            = Win;
+        ResizeArg.Hin            = Hin;
         ResizeArg.Out            = Input_1;
-        ResizeArg.Wout           = 300;
-        ResizeArg.Hout           = 300;
-        ResizeArg.HTileOut       = 300;
-        ResizeArg.FirstLineIndex = 0;
+        ResizeArg.Wout           = Wout;
+        ResizeArg.HTileOut       = Hout;
+        ResizeArg.HStep          = ((Hin-1)<<16)/(Hout-1);
+        ResizeArg.WStep          = ((Win-1)<<16)/(Wout-1);
+        ResizeArg.HTileInIndex   = 0;
+        ResizeArg.HTileOutIndex  = 0;
         pi_cluster_task(&task_resize, (void (*)(void *))Resize, &ResizeArg);
         pi_cluster_task_stacks(&task_resize, NULL, SLAVE_STACK_SIZE);
         pi_cluster_send_task_to_cl(&cluster_dev, &task_resize);
